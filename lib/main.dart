@@ -58,8 +58,11 @@ class ItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text('Item $index: ${item.data}'),
-      subtitle: Text('Type: ${item.data.runtimeType}'),
+      leading: CircleAvatar(
+        child: Text('${index+1}'),
+      ),
+      title: Text('${item.data}'),
+      subtitle: Text('${item.description}'), // Display the description
       onLongPress: () {
         showItemOptions(context, item, index);
       },
@@ -78,7 +81,6 @@ class ItemTile extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
                 showEditItemBottomSheet(context, item, index);
-
               },
             ),
             TextButton(
@@ -96,6 +98,7 @@ class ItemTile extends StatelessWidget {
 
   void showEditItemBottomSheet(BuildContext context, Item item, int index) {
     final itemValueController = TextEditingController(text: item.data.toString());
+    final itemDescriptionController = TextEditingController(text: item.description); // Add a controller for the description field
 
     showModalBottomSheet(
       context: context,
@@ -107,21 +110,25 @@ class ItemTile extends StatelessWidget {
               Text('Edit Item $index'),
               TextField(
                 controller: itemValueController,
+                decoration: InputDecoration(labelText: 'Add Title'),
+              ),
+              TextField(
+                controller: itemDescriptionController,
+                decoration: InputDecoration(labelText: 'Add Description'), // Add a description input field
               ),
               ElevatedButton(
                 onPressed: () {
                   // Validate and update the item
                   final newValue = itemValueController.text;
-                  if (item.updateValue(newValue)) {
+                  final newDescription = itemDescriptionController.text; // Get the description value
+                  if (item.updateValue(newValue, newDescription)) {
                     Provider.of<ItemList>(context, listen: false).addItem(item);
                     Provider.of<ItemList>(context, listen: false).deleteItem(index);
                     Navigator.of(context).pop();
                     // Close the bottom sheet
                   }
-
                 },
                 child: Text('Save'),
-
               ),
             ],
           ),
@@ -147,10 +154,22 @@ class AddItemButton extends StatelessWidget {
       context: context,
       builder: (context) {
         final newItemValueController = TextEditingController();
+        final newItemDescriptionController = TextEditingController(); // Add a controller for the description field
+
         return AlertDialog(
           title: Text('Add a New Item'),
-          content: TextField(
-            controller: newItemValueController,
+          content: Column(
+            mainAxisSize: MainAxisSize.min, // Ensure that the dialog height adjusts to content
+            children: [
+              TextField(
+                controller: newItemValueController,
+                decoration: InputDecoration(labelText: 'Add Title'),
+              ),
+              TextField(
+                controller: newItemDescriptionController,
+                decoration: InputDecoration(labelText: 'Add Description'), // Add a description input field
+              ),
+            ],
           ),
           actions: <Widget>[
             TextButton(
@@ -163,7 +182,8 @@ class AddItemButton extends StatelessWidget {
               child: Text('Add'),
               onPressed: () {
                 final newValue = newItemValueController.text;
-                final item = Item(data: newValue);
+                final newDescription = newItemDescriptionController.text; // Get the description value
+                final item = Item(data: newValue, description: newDescription); // Pass the description to the Item constructor
                 Provider.of<ItemList>(context, listen: false).addItem(item);
                 Navigator.of(context).pop(); // Close the dialog
               },
@@ -193,14 +213,14 @@ class ItemList with ChangeNotifier {
 
 class Item {
   dynamic data;
+  String description;
 
-  Item({required this.data});
+  Item({required this.data, this.description = ''});
 
-  bool updateValue(dynamic newValue) {
-    // You can add validation logic here
-    // For example, ensure that newValue has the correct data type
+  bool updateValue(dynamic newValue, String newDescription) {
     if (newValue.runtimeType == data.runtimeType) {
       data = newValue;
+      description = newDescription; // Update the description
       return true;
     } else {
       return false;
